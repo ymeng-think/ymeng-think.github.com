@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
 
-  <title><![CDATA[My Octopress Blog]]></title>
-  <link href="http://ymeng-think.github.io/atom.xml" rel="self"/>
+  <title><![CDATA[Category: Blog | My Octopress Blog]]></title>
+  <link href="http://ymeng-think.github.io/blog/categories/blog/atom.xml" rel="self"/>
   <link href="http://ymeng-think.github.io/"/>
   <updated>2013-07-12T16:50:43+08:00</updated>
   <id>http://ymeng-think.github.io/</id>
@@ -18,7 +18,7 @@
     <link href="http://ymeng-think.github.io/blog/2013/07/12/build-blog-with-octopress-as-a-hacker/"/>
     <updated>2013-07-12T15:02:00+08:00</updated>
     <id>http://ymeng-think.github.io/blog/2013/07/12/build-blog-with-octopress-as-a-hacker</id>
-    <content type="html"><![CDATA[<p><img class="right" src="http://ymeng-think.github.io/images/build_blog_with_octopress_as_a_hacker/octopress.png" width="280" height="210" title="image" alt="images"></p>
+    <content type="html"><![CDATA[<p><img class="right" src="/images/build_blog_with_octopress_as_a_hacker/octopress.png" width="280" height="210" title="&lsquo;image&rsquo; &lsquo;images&rsquo;" ></p>
 
 <h3>在开始创建自己的博客之前，我们首先要准备：</h3>
 
@@ -119,7 +119,7 @@ $ git push origin source
 
 <p>此时，你会注意到Github上的 rubyonchina.github.com 库中出现了两个分支：</p>
 
-<p><img class="left" src="http://ymeng-think.github.io/images/build_blog_with_octopress_as_a_hacker/two-branches-demo.png" width="932" height="187" title="image" alt="images"></p>
+<p><img class="left" src="/images/build_blog_with_octopress_as_a_hacker/two-branches-demo.png" width="932" height="187" title="&lsquo;image&rsquo; &lsquo;images&rsquo;" ></p>
 
 <h3>参考文章</h3>
 
@@ -128,15 +128,6 @@ $ git push origin source
 <li><a href="http://www.yangzhiping.com/tech/octopress.html">Octopress——像黑客一样写博客</a></li>
 </ul>
 
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[post title]]></title>
-    <link href="http://ymeng-think.github.io/blog/2013/07/12/post-title/"/>
-    <updated>2013-07-12T13:42:00+08:00</updated>
-    <id>http://ymeng-think.github.io/blog/2013/07/12/post-title</id>
-    <content type="html"><![CDATA[
 ]]></content>
   </entry>
   
