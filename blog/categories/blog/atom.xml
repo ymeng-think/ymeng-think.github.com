@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Blog | My Octopress Blog]]></title>
   <link href="http://ymeng-think.github.io/blog/categories/blog/atom.xml" rel="self"/>
   <link href="http://ymeng-think.github.io/"/>
-  <updated>2013-07-12T16:50:43+08:00</updated>
+  <updated>2013-07-12T16:57:30+08:00</updated>
   <id>http://ymeng-think.github.io/</id>
   <author>
     <name><![CDATA[Your Name]]></name>
@@ -18,7 +18,7 @@
     <link href="http://ymeng-think.github.io/blog/2013/07/12/build-blog-with-octopress-as-a-hacker/"/>
     <updated>2013-07-12T15:02:00+08:00</updated>
     <id>http://ymeng-think.github.io/blog/2013/07/12/build-blog-with-octopress-as-a-hacker</id>
-    <content type="html"><![CDATA[<p><img class="right" src="/images/build_blog_with_octopress_as_a_hacker/octopress.png" width="280" height="210" title="&lsquo;image&rsquo; &lsquo;images&rsquo;" ></p>
+    <content type="html"><![CDATA[<p>{% img right /images/build_blog_with_octopress_as_a_hacker/octopress.png 280 210 &lsquo;image&rsquo; &lsquo;images&rsquo; %}</p>
 
 <h3>在开始创建自己的博客之前，我们首先要准备：</h3>
 
@@ -119,7 +119,7 @@ $ git push origin source
 
 <p>此时，你会注意到Github上的 rubyonchina.github.com 库中出现了两个分支：</p>
 
-<p><img class="left" src="/images/build_blog_with_octopress_as_a_hacker/two-branches-demo.png" width="932" height="187" title="&lsquo;image&rsquo; &lsquo;images&rsquo;" ></p>
+<p>{% img left /images/build_blog_with_octopress_as_a_hacker/two-branches-demo.png 932 187 &lsquo;image&rsquo; &lsquo;images&rsquo; %}</p>
 
 <h3>参考文章</h3>
 

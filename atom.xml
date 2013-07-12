@@ -4,7 +4,7 @@
   <title><![CDATA[My Octopress Blog]]></title>
   <link href="http://ymeng-think.github.io/atom.xml" rel="self"/>
   <link href="http://ymeng-think.github.io/"/>
-  <updated>2013-07-12T16:50:43+08:00</updated>
+  <updated>2013-07-12T16:57:29+08:00</updated>
   <id>http://ymeng-think.github.io/</id>
   <author>
     <name><![CDATA[Your Name]]></name>
@@ -128,15 +128,6 @@ $ git push origin source
 <li><a href="http://www.yangzhiping.com/tech/octopress.html">Octopress——像黑客一样写博客</a></li>
 </ul>
 
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[post title]]></title>
-    <link href="http://ymeng-think.github.io/blog/2013/07/12/post-title/"/>
-    <updated>2013-07-12T13:42:00+08:00</updated>
-    <id>http://ymeng-think.github.io/blog/2013/07/12/post-title</id>
-    <content type="html"><![CDATA[
 ]]></content>
   </entry>
   
