@@ -24,7 +24,7 @@ categories: [Blog, Octopress]
 	
 将 ~/dev/rubyonchina.github.com/.rvmrc 的内容修改为：
 
-	$ rvm use 1.9.3@rails31
+	rvm use 1.9.3@rails31
 	
 安装相应的Gem：
 	
