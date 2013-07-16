@@ -31,6 +31,10 @@ categories: [Blog, Octopress]
 	$ cd ~/dev/rubyonchina.github.com
 	$ bundle update
 	
+*如果你正在使用 Ruby 1.9.2，则在执行“bundle update”过程中可能遇到 rdiscount 2.0.7.3 安装失败的问题。切换至 Ruby 1.9.3 问题解决。*
+
+	
+	
 然后生成模版文件：
 
 	$ rake install
@@ -96,6 +100,8 @@ categories: [Blog, Octopress]
 此时，你会注意到Github上的 rubyonchina.github.com 库中出现了两个分支：
 
 {% img left /images/tech/build_blog_with_octopress_as_a_hacker/two-branches-demo.png 932 187 'image' 'images' %}
+
+好了，你已经在Github上创建了自己的博客，那么开始动手写吧！
 
 ### 参考文章
 * [Octopress](http://octopress.org/)
