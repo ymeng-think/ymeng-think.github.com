@@ -33,8 +33,7 @@ categories: [Blog, Octopress]
 	
 *如果你正在使用 Ruby 1.9.2，则在执行“bundle update”过程中可能遇到 rdiscount 2.0.7.3 安装失败的问题。切换至 Ruby 1.9.3 问题解决。*
 
-	
-	
+
 然后生成模版文件：
 
 	$ rake install
