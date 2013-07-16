@@ -8,7 +8,7 @@ published: true
 categories: [Blog, Octopress]
 
 ---
-{% img right /images/build_blog_with_octopress_as_a_hacker/octopress.png 280 210 'image' 'images' %}
+{% img right /images/tech/build_blog_with_octopress_as_a_hacker/octopress.png 280 210 'image' 'images' %}
 
 ### 在开始创建自己的博客之前，我们首先要准备：
 
@@ -95,7 +95,7 @@ categories: [Blog, Octopress]
 	
 此时，你会注意到Github上的 rubyonchina.github.com 库中出现了两个分支：
 
-{% img left /images/build_blog_with_octopress_as_a_hacker/two-branches-demo.png 932 187 'image' 'images' %}
+{% img left /images/tech/build_blog_with_octopress_as_a_hacker/two-branches-demo.png 932 187 'image' 'images' %}
 
 ### 参考文章
 * [Octopress](http://octopress.org/)
