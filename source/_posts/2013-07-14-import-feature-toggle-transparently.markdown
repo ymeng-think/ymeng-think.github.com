@@ -202,7 +202,7 @@ ProxyGenerator.java
 ```
 
 为了能更加清楚地说明如何使用特性开关，我们举一个生活中的小例子：<br />
-在日本，由于绝大多数人不喜欢吃番茄酱，所以麦当劳中销售的汉堡默认是没有加番茄酱的；但是在世界的其它地方，番茄酱确实汉堡的必备佐料。
+在日本，由于绝大多数人不喜欢吃番茄酱，所以麦当劳中销售的汉堡默认是没有加番茄酱的；但是在世界的其它地方，番茄酱却是汉堡的必备佐料。
 
 应用举例：
 
@@ -433,14 +433,14 @@ Material.java
         	return "TomatoSauce|";
 	    }</pre>
 	
-从上面的比较，我们可以看出由“AspectJ编译方式”创建的特性开关由于条件变量的传入，会在一定程度上破坏业务的清晰表达，对代码整洁也会产生一定影响。所以在我们的项目中，最终选择了以“代理模式”创建特性开关。
+通过上面的比较，我们可以看出由“AspectJ编译方式”创建的特性开关由于条件变量的传入，会在一定程度上破坏业务的清晰表达，对代码整洁也会产生一定影响。所以在我们的项目中，最终选择了以“代理模式”创建特性开关。
 
 
 ### 应用
 
-下面与大家分享一下，在我们当前项目中是如何一步步引入特性开关的。
+下面与大家分享一下，在我们的项目中是如何一步步引入特性开关的。
 
-首先，我们来看看需要加入特性开关的类。
+首先，让我们来看看需要加入特性开关的类。
 
 OwnerDetailAction.java
 
@@ -468,9 +468,9 @@ OwnerDetailAction.java
 通过观察上面的代码可以看出，service.getInsuranceCoverage() 与 ownerDetail.setInsuranceCoverage() 是属于业务范畴的操作，而 getCurrentBrand() == Brand.AMMI && getCurrentChannel() == Channel.Internet 则是针对品牌与渠道的判断，属于特性判断的范畴，与业务并没有直接的联系。当这样的逻辑判断与正常的业务逻辑混杂在一起时，严重影响了业务的清晰表达。<br />
 所以第一步我们现将这团混乱的代码抽取到一个新类中，从而保证主流程的清晰表达。
 
-*首先，将ownerDetail.setScale()抽取到一个新类中。*
+*首先，将ownerDetail.setInsuranceCoverage()抽取到一个新类中。*
 
-ScaleSetting.java
+InsuranceCoverageUpdater.java
 
 ``` java
 	public class InsuranceCoverageUpdater {
@@ -515,7 +515,7 @@ OwnerDetailAction.java
 	}
 ```
 
-虽然只是简单地做了一次类的抽取，但是对比之前，现在的代码在业务表达上已经清爽了很多。不过判断依然存在，只是被隐藏到了InsuranceCoverageUpdater类中。
+虽然只是简单地做了类的抽取，但是对比之前，现在的代码在业务表达上已经清爽了很多。不过判断依然存在，只是被隐藏到了InsuranceCoverageUpdater类中。
 
 *接下来，我们使用特性开关进一步改进逻辑表达。*
 
@@ -544,7 +544,7 @@ OwnerDetailAction.java
 ```
 
 可以看出，原来的 new InsuranceCoverageUpdater(brand, channel) 方法被 brand(brand).channel(channel).create(InsuranceCoverageUpdater.class) 方法所取代。<br />
-此处的brand()方法是静态导入的Brand.brand()方法。通过静态导入，使对brand和channel的设定表现为了链式结构，进一步增强了代码的可读性。尔后，再通过create()方法创建InsuranceCoverageUpdater类的实例。
+此处的brand()方法是静态导入的Brand.brand()方法。通过静态导入，使对brand和channel的设定表现为链式结构，进一步增强了代码的可读性。尔后，再通过create()方法创建InsuranceCoverageUpdater类的实例。
 
 InsuranceCoverageUpdater类中的代码也得到进一步精简。
 	
@@ -570,9 +570,9 @@ InsuranceCoverageUpdater.java
 	public void update(OwnerDetail ownerDetail) { ... }
 ```
 	
-同理，如果未来InsuranceCoverageUpdater.update()功能将对所有品牌开放，只需简单地将@BrandAndChannels标注移除即可。
+同理，如果未来InsuranceCoverageUpdater.update()功能将对所有品牌开放，只需简单地将@BrandAndChannels标记移除即可。
 
-最后我们来揭开神秘的brand().channel().create()的面纱。
+最后我们来揭开 brand().channel().create() 的神秘面纱。
 
 BrandToggle.java
 
@@ -644,7 +644,7 @@ Note: 如果您想了解特性开关的更多实现细节，可以在我的[Gith
 
 “特性开关”在许多场景中都比“特性分支”具有更好的适用性和更高的效率。但是，就像所有的解决方案一样，特性开关同样也不是银弹，也存在使用的界限。只有我们很好地掌握其原理，合理地应用技术，不断改进，才能使“特性开关”这一利器在我们的项目中发挥更大的作用。
 
-最后，衷心感谢ThoughtWorks公司高级咨询师张逸先生在本文写作过程中提供的无私帮助与建议。
+最后，衷心感谢ThoughtWorks公司高级咨询师张逸在本文写作过程中提供的无私帮助与建议。
 
 
 ---
