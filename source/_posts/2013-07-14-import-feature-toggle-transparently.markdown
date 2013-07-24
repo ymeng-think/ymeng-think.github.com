@@ -4,7 +4,7 @@ title: "在项目中透明地引入特性开关"
 date: 2013-07-14 18:22
 comments: true
 author: Meng Yu
-published: true
+published: false
 categories: ContinuousDelivery
 Tags: [ContinuousDelivery, FeatureToggle]
 
@@ -645,6 +645,8 @@ Note: 如果您想了解特性开关的更多实现细节，可以在我的[Gith
 “特性开关”在许多场景中都比“特性分支”具有更好的适用性和更高的效率。但是，就像所有的解决方案一样，特性开关同样也不是银弹，也存在使用的界限。只有我们很好地掌握其原理，合理地应用技术，不断改进，才能使“特性开关”这一利器在我们的项目中发挥更大的作用。
 
 最后，衷心感谢ThoughtWorks公司高级咨询师张逸在本文写作过程中提供的无私帮助与建议。
+
+---
 
 ### 成文数日后的一次思考（Jul 24, 2013）
 
