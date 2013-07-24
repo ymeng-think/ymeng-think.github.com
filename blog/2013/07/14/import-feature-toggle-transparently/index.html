@@ -1,24 +1,97 @@
-<?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom">
 
-  <title><![CDATA[My Octopress Blog]]></title>
-  <link href="http://ymeng-think.github.io/atom.xml" rel="self"/>
-  <link href="http://ymeng-think.github.io/"/>
-  <updated>2013-07-24T12:45:58+08:00</updated>
-  <id>http://ymeng-think.github.io/</id>
-  <author>
-    <name><![CDATA[Your Name]]></name>
-    
-  </author>
-  <generator uri="http://octopress.org/">Octopress</generator>
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>在项目中透明地引入特性开关 - My Octopress Blog</title>
+  <meta name="author" content="Your Name">
 
   
-  <entry>
-    <title type="html"><![CDATA[在项目中透明地引入特性开关]]></title>
-    <link href="http://ymeng-think.github.io/blog/2013/07/14/import-feature-toggle-transparently/"/>
-    <updated>2013-07-14T18:22:00+08:00</updated>
-    <id>http://ymeng-think.github.io/blog/2013/07/14/import-feature-toggle-transparently</id>
-    <content type="html"><![CDATA[<p><img class="right" src="http://ymeng-think.github.io/images/tech/import_feature_toggle_transparently/toggle.jpg" width="370" height="245" title="Toggle" alt="toggle"></p>
+  <meta name="description" content="在前几期的InfoQ专栏中刊登了一篇名为“使用功能开关更好地实现持续部署”的文章，文中讲解了特性开关与Spring的集成应用。但如果项目没有依赖Spring，又如何很好地使用特性开关呢？又如何透明地引入之呢？ 接下来就向大家介绍，在我们的项目中是如何使用特性开关透明地实现功能屏蔽的。 问题 &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://ymeng-think.github.io/blog/2013/07/14/import-feature-toggle-transparently">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="My Octopress Blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">My Octopress Blog</a></h1>
+  
+    <h2>A blogging framework for hackers.</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:ymeng-think.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">在项目中透明地引入特性开关</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-07-14T18:22:00+08:00" pubdate data-updated="true">Jul 14<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p><img class="right" src="/images/tech/import_feature_toggle_transparently/toggle.jpg" width="370" height="245" title="Toggle" alt="toggle"></p>
 
 <p>在前几期的InfoQ专栏中刊登了一篇名为“<a href="http://www.infoq.com/cn/articles/function-switch-realize-better-continuous-implementations">使用功能开关更好地实现持续部署</a>”的文章，文中讲解了特性开关与Spring的集成应用。但如果项目没有依赖Spring，又如何很好地使用特性开关呢？又如何透明地引入之呢？</p>
 
@@ -231,7 +304,7 @@
 
 <p>在实际应用中，我们可以创建一种名为“保护代理”的对象，即控制对象具有不同的访问权限。</p>
 
-<p><img class="middle" src="http://ymeng-think.github.io/images/tech/import_feature_toggle_transparently/proxy.png" width="458" height="248" title="Create Object with Protection Proxy" alt="protection proxy"></p>
+<p><img class="middle" src="/images/tech/import_feature_toggle_transparently/proxy.png" width="458" height="248" title="Create Object with Protection Proxy" alt="protection proxy"></p>
 
 <p>具体实现参见如下代码，ProxyGenerator类使用动态代理创建目标类的代理(Proxy)类。</p>
 
@@ -417,7 +490,7 @@
 
 <p>通过AspectJ，我们可以将判定条件在编译时注入到代码中。</p>
 
-<p><img class="middle" src="http://ymeng-think.github.io/images/tech/import_feature_toggle_transparently/aspectj.png" width="432" height="259" title="Compile Object with AspectJ" alt="aspectj"></p>
+<p><img class="middle" src="/images/tech/import_feature_toggle_transparently/aspectj.png" width="432" height="259" title="Compile Object with AspectJ" alt="aspectj"></p>
 
 <p>如下代码所示，FeatureToggleAspect类通过AspectJ在编译时将切入点(Runner接口的实现类)置入被@ToggleRunner所标记的方法的前部。当方法被调用时，将首先执行Runner接口的实现类，对是否满足条件作出判断。如果满足，则原逻辑才会被执行。</p>
 
@@ -1042,129 +1115,114 @@
 
 
 <p>如果大家能够通过遵循正确的步骤使用特性开关，解决了困扰自己多时的问题，那么特性开关就已经产生了它最大的价值。</p>
-]]></content>
-  </entry>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
   
-  <entry>
-    <title type="html"><![CDATA[Octopress帮你像黑客一样写博客]]></title>
-    <link href="http://ymeng-think.github.io/blog/2013/07/12/build-blog-with-octopress-as-a-hacker/"/>
-    <updated>2013-07-12T15:02:00+08:00</updated>
-    <id>http://ymeng-think.github.io/blog/2013/07/12/build-blog-with-octopress-as-a-hacker</id>
-    <content type="html"><![CDATA[<p><img class="right" src="http://ymeng-think.github.io/images/tech/build_blog_with_octopress_as_a_hacker/octopress.png" width="280" height="210" title="image" alt="images"></p>
 
-<h3>在开始创建自己的博客之前，我们首先要准备：</h3>
+<span class="byline author vcard">Posted by <span class="fn">Meng Yu</span></span>
 
-<ul>
-<li><a href="https://github.com/signup/free">创建个人Github帐号</a></li>
-<li><a href="http://rvm.io/rubies/installing">安装Ruby 1.9.3</a></li>
-</ul>
+      
 
 
-<h3>开始配置个人Octopress博客</h3>
 
-<p>假设已经创建了一个Github帐户：rubyonchina</p>
 
-<pre><code>$ cd ~/dev/
-$ git clone git://github.com/imathis/octopress.git rubyonchina.github.com
-</code></pre>
 
-<p>将 ~/dev/rubyonchina.github.com/.rvmrc 的内容修改为：</p>
 
-<pre><code>rvm use 1.9.3@rails31
-</code></pre>
 
-<p>安装相应的Gem：</p>
 
-<pre><code>$ cd ~/dev/rubyonchina.github.com
-$ bundle update
-</code></pre>
-
-<p><em>如果你正在使用 Ruby 1.9.2，则在执行“bundle update”过程中可能遇到 rdiscount 2.0.7.3 安装失败的问题。切换至 Ruby 1.9.3 问题解决。</em></p>
-
-<p>然后生成模版文件：</p>
-
-<pre><code>$ rake install
-</code></pre>
-
-<p>在Github上创建一个新的Repository，名为：rubyonchina.github.com</p>
-
-<p>添加远程Repository路径：</p>
-
-<pre><code>$ git remote add rubyonchina git@github.com:rubyonchina/rubyonchina.github.com.git
-</code></pre>
-
-<p>生成静态站点：</p>
-
-<pre><code>$ rake generate
-</code></pre>
-
-<p>配置Octopress与Github的连接：</p>
-
-<pre><code>$ rake setup_github_pages
-
-该命令将：
-
-    1. 询问你的Github Pages repository的URL。
-    2. 将.git/config中 imathis/octopress 的远程路径，由“origin”改为"octopress"。
-    3. 将你的 Github Pages repository 添加为默认的 origin remote。
-    4. 将当前的活动分支由 master 切换为 source.
-    5. 根据你的 repository 配置博客的URL。
-    6. 在_deploy目录中为部署创建 master 分支。
-</code></pre>
-
-<p>根据提示填入你的Github项目网址，本示例是：</p>
-
-<pre><code>$ git@github.com:rubyonchina/rubyonchina.github.com.git
-</code></pre>
-
-<p>部署到Github上：</p>
-
-<pre><code>$ rake deploy
-</code></pre>
-
-<p>此时，当前目录中仍有一些目录没有被Git管理，可能如下所示：</p>
-
-<pre><code>$ git status 
-# On branch source 
-# Your branch is ahead of 'origin/master' by 716 commits. 
-# 
-# Changes not staged for commit: 
-#   (use "git add &lt;file&gt;..." to update what will be committed) 
-#   (use "git checkout -- &lt;file&gt;..." to discard changes in working directory) 
-# 
-#       modified:   .rvmrc 
-#       modified:   Gemfile.lock 
-#       modified:   Rakefile 
-#       modified:   _config.yml 
-# 
-# Untracked files: 
-#   (use "git add &lt;file&gt;..." to include in what will be committed) 
-# 
-#       sass/ 
-#       source/
-</code></pre>
-
-<p>需要将这些文件提交至source分支上，如下：</p>
-
-<pre><code>$ git add .
-$ git commit -m 'your message'
-$ git push origin source
-</code></pre>
-
-<p>此时，你会注意到Github上的 rubyonchina.github.com 库中出现了两个分支：</p>
-
-<p><img class="left" src="http://ymeng-think.github.io/images/tech/build_blog_with_octopress_as_a_hacker/two-branches-demo.png" width="932" height="187" title="image" alt="images"></p>
-
-<p>好了，你已经在Github上创建了自己的博客，那么开始动手写吧！</p>
-
-<h3>参考文章</h3>
-
-<ul>
-<li><a href="http://octopress.org/">Octopress</a></li>
-<li><a href="http://www.yangzhiping.com/tech/octopress.html">Octopress——像黑客一样写博客</a></li>
-</ul>
-
-]]></content>
-  </entry>
   
-</feed>
+
+
+<time datetime="2013-07-14T18:22:00+08:00" pubdate data-updated="true">Jul 14<span>th</span>, 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/continuousdelivery/'>ContinuousDelivery</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://ymeng-think.github.io/blog/2013/07/14/import-feature-toggle-transparently/" data-via="" data-counturl="http://ymeng-think.github.io/blog/2013/07/14/import-feature-toggle-transparently/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/07/12/build-blog-with-octopress-as-a-hacker/" title="Previous Post: Octopress帮你像黑客一样写博客">&laquo; Octopress帮你像黑客一样写博客</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/07/14/import-feature-toggle-transparently/">在项目中透明地引入特性开关</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/07/12/build-blog-with-octopress-as-a-hacker/">Octopress帮你像黑客一样写博客</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Your Name -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

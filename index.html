@@ -9,9 +9,7 @@
   <meta name="author" content="Your Name">
 
   
-  <meta name="description" content="在开始创建自己的博客之前，我们首先要准备： 创建个人Github帐号
-安装Ruby 1.9.3 开始配置个人Octopress博客 假设已经创建了一个Github帐户：rubyonchina $ cd ~/dev/
-$ git clone git://github.com/imathis/ &hellip;">
+  <meta name="description" content="在前几期的InfoQ专栏中刊登了一篇名为“使用功能开关更好地实现持续部署”的文章，文中讲解了特性开关与Spring的集成应用。但如果项目没有依赖Spring，又如何很好地使用特性开关呢？又如何透明地引入之呢？ 接下来就向大家介绍，在我们的项目中是如何使用特性开关透明地实现功能屏蔽的。 问题 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -67,6 +65,1065 @@ $ git clone git://github.com/imathis/ &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/07/14/import-feature-toggle-transparently/">在项目中透明地引入特性开关</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-07-14T18:22:00+08:00" pubdate data-updated="true">Jul 14<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><img class="right" src="/images/tech/import_feature_toggle_transparently/toggle.jpg" width="370" height="245" title="Toggle" alt="toggle"></p>
+
+<p>在前几期的InfoQ专栏中刊登了一篇名为“<a href="http://www.infoq.com/cn/articles/function-switch-realize-better-continuous-implementations">使用功能开关更好地实现持续部署</a>”的文章，文中讲解了特性开关与Spring的集成应用。但如果项目没有依赖Spring，又如何很好地使用特性开关呢？又如何透明地引入之呢？</p>
+
+<p>接下来就向大家介绍，在我们的项目中是如何使用特性开关透明地实现功能屏蔽的。</p>
+
+<h3>问题</h3>
+
+<p>我们的团队正在开发一款在线保险产品，该产品下包括若干品牌，每个品牌有不同的目标用户群，但所提供的服务基本相同。当第一个品牌正式上线后，我们就面临一个很大挑战——既要修正上线后发现的Bug，又要继续为其它品牌继续添加新特性，且这些特性暂时不能反映到已上线的品牌中。</p>
+
+<p>最终我们决定选择<a href="http://martinfowler.com/bliki/FeatureToggle.html">特性开关</a>来解决这个问题。</p>
+
+<p>要解决这个问题，我们可以选择 if… else… 这样简单的特性开关模型。但是如果这样做又会引入其它问题：</p>
+
+<ul>
+<li><p><em>条件式特型开关会对现有的业务结构产生影响</em></p>
+
+<p> 清晰的业务逻辑，简单的代码结构是保证项目长期可维护性的基础。如果特性开关的添加使业务逻辑变得复杂而不易理解，那么特性开关就在一定程度上破坏了项目的可维护性。</p>
+
+<p> 添加特性开关前：</p></li>
+</ul>
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">inputVehicleDetails</span><span class="o">();</span>
+</span><span class='line'><span class="n">createQuote</span><span class="o">();</span>
+</span><span class='line'><span class="n">inputPersonalDetails</span><span class="o">();</span>
+</span><span class='line'><span class="n">buyInsurance</span><span class="o">();</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>   添加特性开关后：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">inputVehicleDetails</span><span class="o">();</span>
+</span><span class='line'><span class="k">if</span> <span class="o">(</span><span class="n">brandA</span><span class="o">.</span><span class="na">isActive</span><span class="o">())</span> <span class="o">{</span>    <span class="c1">// 条件式特性开关</span>
+</span><span class='line'>  <span class="n">createQuote</span><span class="o">();</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'><span class="n">inputPersonalDetails</span><span class="o">();</span>
+</span><span class='line'><span class="n">buyInsurance</span><span class="o">();</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>   可以看到，简单的条件分支虽然实现了特性开关——部分代码只有在满足条件时才会执行，但却破坏了原有清晰的业务结构⋯⋯</p>
+
+<ul>
+<li><p><em>当前程序中如果已存在了某些类似特性开关的判断，条件式特性开关会造成逻辑混淆</em></p>
+
+<p> 添加特性开关前：</p></li>
+</ul>
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">inputVehicleDetails</span><span class="o">();</span>
+</span><span class='line'><span class="n">createQuote</span><span class="o">();</span>
+</span><span class='line'><span class="k">if</span> <span class="o">(</span><span class="n">currentBrand</span> <span class="o">==</span> <span class="n">brandB</span><span class="o">)</span> <span class="o">{</span>    <span class="c1">// 原有依赖于品牌的条件判断</span>
+</span><span class='line'>  <span class="n">inputPersonalDetails</span><span class="o">();</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'><span class="n">buyInsurance</span><span class="o">();</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>   添加特性开关后：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">inputVehicleDetails</span><span class="o">();</span>
+</span><span class='line'><span class="k">if</span> <span class="o">(</span><span class="n">brandA</span><span class="o">.</span><span class="na">isActive</span><span class="o">())</span> <span class="o">{</span>        <span class="c1">// 特性开关</span>
+</span><span class='line'>  <span class="n">createQuote</span><span class="o">();</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'><span class="k">if</span> <span class="o">(</span><span class="n">currentBrand</span> <span class="o">==</span> <span class="n">brandB</span><span class="o">)</span> <span class="o">{</span>    <span class="c1">// 原有依赖于品牌的条件判断</span>
+</span><span class='line'>  <span class="n">inputPersonalDetails</span><span class="o">();</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'><span class="n">buyInsurance</span><span class="o">();</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>   可以看到，新添加入的条件式特性开关 brandA.isActive() 与原有业务判定逻辑 currentBrand == brashA 十分相似，很难区分，在使用过程中更是特别容易混淆。更糟的是，随着项目的不断深入，越来越多的条件式特性开关会被放置在代码中，代码中会充满“坏味道“，这样只会使混淆的情况进一步恶化！</p>
+
+<ul>
+<li><p><em>条件式特性开关并不具有可扩展性</em></p>
+
+<p> 条件式特性开关通常只是简单的条件判断，并不具有可扩展性。添加第一个条件判断与添加第十个需要写同样多的代码，并且由于判断逻辑越来越多，会令添加代码所用时间和维护成本持续增加。</p>
+
+<p> 例如：</p></li>
+</ul>
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="k">if</span> <span class="o">(</span><span class="n">brandA</span><span class="o">.</span><span class="na">isActive</span><span class="o">())</span> <span class="o">{</span>       <span class="c1">// 特性开关</span>
+</span><span class='line'>  <span class="n">inputVehicleDetails</span><span class="o">();</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'><span class="k">if</span> <span class="o">(</span><span class="n">brandB</span><span class="o">.</span><span class="na">isActive</span><span class="o">())</span> <span class="o">{</span>        <span class="c1">// 特性开关</span>
+</span><span class='line'>  <span class="n">createQuote</span><span class="o">();</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'><span class="k">if</span> <span class="o">(</span><span class="n">brandC</span><span class="o">.</span><span class="na">isActive</span><span class="o">())</span> <span class="o">{</span>        <span class="c1">// 特性开关</span>
+</span><span class='line'>  <span class="n">inputPersonalDetails</span><span class="o">();</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'><span class="k">if</span> <span class="o">(</span><span class="n">brandD</span><span class="o">.</span><span class="na">isActive</span><span class="o">())</span> <span class="o">{</span>       <span class="c1">// 特性开关</span>
+</span><span class='line'>  <span class="n">buyInsurance</span><span class="o">();</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<ul>
+<li><p><em>当需要移除特性开关时，我们必须删除代码</em></p>
+
+<p>例如：</p></li>
+</ul>
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">inputVehicleDetails</span><span class="o">();</span>
+</span><span class='line'><span class="k">if</span> <span class="o">(</span><span class="n">brandA</span><span class="o">.</span><span class="na">isActive</span><span class="o">())</span> <span class="o">{</span>    <span class="c1">// 移除特性开关时，需要删除这行</span>
+</span><span class='line'>  <span class="n">createQuote</span><span class="o">();</span>
+</span><span class='line'><span class="o">}</span>                          <span class="c1">// 移除特性开关时，需要删除这行</span>
+</span><span class='line'><span class="n">inputPersonalDetails</span><span class="o">();</span>
+</span><span class='line'><span class="n">buyInsurance</span><span class="o">();</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>通过上面的分析，我们可以看出简单的条件式特性开关对于我们的项目并不是最好的选择。那么我们所期待的特性开关应该具有那些特点呢？</p>
+
+<h3>期待的特点</h3>
+
+<p>为了更加完美地解决我们所遇到的问题，我们期待所使用的特性开关具有如下特点：</p>
+
+<ol>
+<li><em>不会对现有的业务结构产生影响</em></li>
+<li><em>不会与程序中已存在的逻辑判断相混淆</em></li>
+<li><em>具有可扩展性</em></li>
+<li><em>可以容易地调整需要屏蔽或开放的功能</em></li>
+<li><em>当最终所有品牌都上线后，可以很方便地将特性开关移除</em></li>
+<li><em>随意切换，便于测试</em></li>
+</ol>
+
+
+<p>所以，如果我们的特性开关如果能像下面代码所示的那样工作就好了。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="nd">@Brand</span><span class="o">(</span><span class="s">&quot;BrandA&quot;</span><span class="o">)</span>          <span class="c1">// 将特性开关扩展为对“品牌”进行支持</span>
+</span><span class='line'><span class="n">inputVehicleDetails</span><span class="o">()</span> <span class="o">{</span> <span class="o">...</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="nd">@Area</span><span class="o">(</span><span class="s">&quot;Austrralia&quot;</span><span class="o">)</span>            <span class="c1">// 将特性开关扩展为对“地区”进行支持</span>
+</span><span class='line'><span class="n">inputPersonalDetails</span><span class="o">()</span> <span class="o">{</span> <span class="o">...</span> <span class="o">}</span>
+</span><span class='line'>      
+</span><span class='line'><span class="o">...</span>
+</span><span class='line'>      
+</span><span class='line'><span class="n">inputVehicleDetails</span><span class="o">()</span>       <span class="c1">// 只有当前品牌为BrandA时，此方法才会被执行</span>
+</span><span class='line'><span class="n">createQuote</span><span class="o">()</span>
+</span><span class='line'><span class="n">inputPersonalDetails</span><span class="o">()</span>      <span class="c1">// 只有当前区域为澳洲时，此方法才会被执行</span>
+</span><span class='line'><span class="n">buyInsurance</span><span class="o">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>太好了，上面的代码具有了我们所期待的全部特性，那么，我们究竟如何实现呢？</p>
+
+<h3>方案</h3>
+
+<p>通过上面的问题描述和期待特点分析，我们可以看出，特性开关作为一种基础结构不应与业务代码相混淆，它们之间不应存在强耦合的关系。我们既需要保持原有业务逻辑，又要在合适的位置将判断逻辑注入其中，这会使我们想到设计模式中的“代理(Proxy)模式”。</p>
+
+<h4>1. 使用代理模式创建特性开关</h4>
+
+<blockquote><p>代理模式: 为其他对象提供一种代理，并以控制对这个对象的访问。而对一个对象进行访问控制的一个原因是为了只有在我们确实需要这个对象时才对它进行创建和初始化。它是给某一个对象提供一个替代者(占位者)，使之在client对象和subject对象之间编码更有效率。</p></blockquote>
+
+<p>在实际应用中，我们可以创建一种名为“保护代理”的对象，即控制对象具有不同的访问权限。</p>
+
+<p><img class="middle" src="/images/tech/import_feature_toggle_transparently/proxy.png" width="458" height="248" title="Create Object with Protection Proxy" alt="protection proxy"></p>
+
+<p>具体实现参见如下代码，ProxyGenerator类使用动态代理创建目标类的代理(Proxy)类。</p>
+
+<p>ProxyGenerator.java</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="kd">class</span> <span class="nc">ProxyGenerator</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">private</span> <span class="n">Class</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">targetClass</span><span class="o">;</span>
+</span><span class='line'>    <span class="kd">private</span> <span class="n">Object</span><span class="o">[]</span> <span class="n">constructorArgs</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">public</span> <span class="nf">ProxyGenerator</span><span class="o">(</span><span class="n">Class</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">targetClass</span><span class="o">,</span> <span class="n">Object</span><span class="o">[]</span> <span class="n">constructorArgs</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">this</span><span class="o">.</span><span class="na">targetClass</span> <span class="o">=</span> <span class="n">targetClass</span><span class="o">;</span>
+</span><span class='line'>        <span class="k">this</span><span class="o">.</span><span class="na">constructorArgs</span> <span class="o">=</span> <span class="n">constructorArgs</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">public</span> <span class="n">T</span> <span class="nf">generate</span><span class="o">(</span><span class="n">MethodFilter</span> <span class="n">methodFilter</span><span class="o">,</span> <span class="n">MethodHandler</span> <span class="n">methodHandler</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Class</span><span class="o">&lt;?&gt;[]</span> <span class="n">argTypes</span> <span class="o">=</span> <span class="n">extractTypes</span><span class="o">(</span><span class="n">constructorArgs</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">ProxyFactory</span> <span class="n">factory</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ProxyFactory</span><span class="o">();</span>
+</span><span class='line'>        <span class="n">factory</span><span class="o">.</span><span class="na">setSuperclass</span><span class="o">(</span><span class="n">targetClass</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">factory</span><span class="o">.</span><span class="na">setFilter</span><span class="o">(</span><span class="n">methodFilter</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">try</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">return</span> <span class="o">(</span><span class="n">T</span><span class="o">)</span> <span class="n">factory</span><span class="o">.</span><span class="na">create</span><span class="o">(</span><span class="n">argTypes</span><span class="o">,</span> <span class="n">constructorArgs</span><span class="o">,</span> <span class="n">methodHandler</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">NoSuchMethodException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">throw</span> <span class="k">new</span> <span class="nf">RuntimeException</span><span class="o">(</span><span class="s">&quot;Can not find constructor&quot;</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">InstantiationException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">throw</span> <span class="k">new</span> <span class="nf">RuntimeException</span><span class="o">(</span><span class="s">&quot;Can not initialize action object&quot;</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">IllegalAccessException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">throw</span> <span class="k">new</span> <span class="nf">RuntimeException</span><span class="o">(</span><span class="s">&quot;Can not call constructor&quot;</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">InvocationTargetException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">throw</span> <span class="k">new</span> <span class="nf">RuntimeException</span><span class="o">(</span><span class="s">&quot;Can not call constructor&quot;</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">private</span> <span class="n">Class</span><span class="o">&lt;?&gt;[]</span> <span class="n">extractTypes</span><span class="o">(</span><span class="n">Object</span><span class="o">[]</span> <span class="n">constructorArgs</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">Constructor</span><span class="o">&lt;?&gt;</span> <span class="n">constructor</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ConstructorFinder</span><span class="o">(</span><span class="n">targetClass</span><span class="o">,</span> <span class="n">constructorArgs</span><span class="o">).</span><span class="na">find</span><span class="o">();</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">constructor</span><span class="o">.</span><span class="na">getParameterTypes</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>为了能更加清楚地说明如何使用特性开关，我们举一个生活中的小例子：<br />
+在日本，由于绝大多数人不喜欢吃番茄酱，所以麦当劳中销售的汉堡默认是没有加番茄酱的；但是在世界的其它地方，番茄酱却是汉堡的必备佐料。</p>
+
+<p>应用举例：</p>
+
+<p>McDonalds.java —— 代表麦当劳，它会将汉堡卖给世界上所有喜爱它的人 ^o^</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="kd">class</span> <span class="nc">McDonalds</span> <span class="o">{</span>
+</span><span class='line'>  <span class="kd">private</span> <span class="n">Country</span> <span class="n">country</span><span class="o">;</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="kd">public</span> <span class="nf">McDonalds</span><span class="o">(</span><span class="n">Country</span> <span class="n">country</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">this</span><span class="o">.</span><span class="na">country</span> <span class="o">=</span> <span class="n">country</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">public</span> <span class="n">String</span> <span class="nf">makeHamburg</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">StringBuilder</span> <span class="n">desc</span> <span class="o">=</span> <span class="k">new</span> <span class="n">StringBuilder</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">Material</span> <span class="n">material</span> <span class="o">=</span> <span class="n">area</span><span class="o">(</span><span class="n">country</span><span class="o">).</span><span class="na">create</span><span class="o">(</span><span class="n">Material</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+</span><span class='line'>      <span class="n">desc</span><span class="o">.</span><span class="na">append</span><span class="o">(</span><span class="n">material</span><span class="o">.</span><span class="na">bread</span><span class="o">());</span>
+</span><span class='line'>      <span class="n">desc</span><span class="o">.</span><span class="na">append</span><span class="o">(</span><span class="n">material</span><span class="o">.</span><span class="na">sauce</span><span class="o">());</span>
+</span><span class='line'>      <span class="n">desc</span><span class="o">.</span><span class="na">append</span><span class="o">(</span><span class="n">material</span><span class="o">.</span><span class="na">lettuce</span><span class="o">());</span>
+</span><span class='line'>      <span class="n">desc</span><span class="o">.</span><span class="na">append</span><span class="o">(</span><span class="n">material</span><span class="o">.</span><span class="na">cutlet</span><span class="o">());</span>
+</span><span class='line'>      <span class="n">desc</span><span class="o">.</span><span class="na">append</span><span class="o">(</span><span class="n">material</span><span class="o">.</span><span class="na">bread</span><span class="o">());</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">return</span> <span class="n">desc</span><span class="o">.</span><span class="na">toString</span><span class="o">();</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Material.java —— 代表汉堡中的材料，包括：面包、生菜、肉饼和重要的蕃茄酱</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">class</span> <span class="nc">Material</span> <span class="o">{</span>
+</span><span class='line'>  <span class="kd">public</span> <span class="n">String</span> <span class="nf">bread</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">return</span> <span class="s">&quot;Bread|&quot;</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">public</span> <span class="n">String</span> <span class="nf">lettuce</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">return</span> <span class="s">&quot;Lettuce|&quot;</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">public</span> <span class="n">String</span> <span class="nf">cutlet</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">return</span> <span class="s">&quot;Meat|&quot;</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nd">@Location</span><span class="o">(</span><span class="n">Others</span><span class="o">)</span>
+</span><span class='line'>  <span class="kd">public</span> <span class="n">String</span> <span class="nf">sauce</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">return</span> <span class="s">&quot;TomatoSauce|&quot;</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>细心的读者可能已经注意到，McDonalds类中material局部变量的创建是通过 area(country).create(Material.class) 来完成的。通过area()方法我们将国家信息添加到了选材的过程中。那么，<br />
+当country是日本时，汉堡的组成就会是：Bread|Lettuce|Meat|Bread|<br />
+当country是其它国家时，汉堡中就会被加入番茄酱：Bread|<strong>TomatoSauce</strong>|Lettuce|Meat|Bread|</p>
+
+<p>如果你对用代理模式生成的特性开关还心存疑问，别着急，你会从下面的“应用”环节中找到答案。</p>
+
+<p>除了以上介绍的这种方法，我们还可以通过控制编译器，在编译阶段将判定条件注入到生成的代码中，以实现特性开关。</p>
+
+<h4>2. 使用ASpectJ动态编译创建特性开关</h4>
+
+<p><a href="http://eclipse.org/aspectj/">AspectJ</a>是一个面向切面的框架，它扩展了Java语言。AspectJ定义了AOP语法,所以它有一个专门的编译器用来生成遵守Java字节编码规范的Class文件。</p>
+
+<p>通过AspectJ，我们可以将判定条件在编译时注入到代码中。</p>
+
+<p><img class="middle" src="/images/tech/import_feature_toggle_transparently/aspectj.png" width="432" height="259" title="Compile Object with AspectJ" alt="aspectj"></p>
+
+<p>如下代码所示，FeatureToggleAspect类通过AspectJ在编译时将切入点(Runner接口的实现类)置入被@ToggleRunner所标记的方法的前部。当方法被调用时，将首先执行Runner接口的实现类，对是否满足条件作出判断。如果满足，则原逻辑才会被执行。</p>
+
+<p>FeatureToggleAspect.java</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="nd">@Aspect</span>
+</span><span class='line'><span class="kd">public</span> <span class="kd">class</span> <span class="nc">FeatureToggleAspect</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nd">@Around</span><span class="o">(</span><span class="s">&quot;methodProxy(toggleRunner)&quot;</span><span class="o">)</span>
+</span><span class='line'>  <span class="kd">public</span> <span class="n">Object</span> <span class="nf">beforeExecute</span><span class="o">(</span><span class="n">ProceedingJoinPoint</span> <span class="n">joinPoint</span><span class="o">,</span> <span class="n">ToggleRunner</span> <span class="n">toggleRunner</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Throwable</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">ProceedingResult</span> <span class="n">processingResult</span> <span class="o">=</span> <span class="n">execute</span><span class="o">(</span><span class="n">joinPoint</span><span class="o">,</span> <span class="n">toggleRunner</span><span class="o">);</span>
+</span><span class='line'>      <span class="k">if</span> <span class="o">(</span><span class="n">processingResult</span><span class="o">.</span><span class="na">shouldBeExecuted</span><span class="o">())</span> <span class="o">{</span>
+</span><span class='line'>          <span class="k">return</span> <span class="n">joinPoint</span><span class="o">.</span><span class="na">proceed</span><span class="o">();</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">return</span> <span class="n">processingResult</span><span class="o">.</span><span class="na">getDefaultValue</span><span class="o">();</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nd">@Pointcut</span><span class="o">(</span><span class="n">value</span> <span class="o">=</span> <span class="s">&quot;@annotation(runner)&quot;</span><span class="o">)</span>
+</span><span class='line'>  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">methodProxy</span><span class="o">(</span><span class="n">ToggleRunner</span> <span class="n">runner</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">private</span> <span class="n">ProceedingResult</span> <span class="nf">execute</span><span class="o">(</span><span class="n">ProceedingJoinPoint</span> <span class="n">joinPoint</span><span class="o">,</span> <span class="n">ToggleRunner</span> <span class="n">toggleRunner</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">try</span> <span class="o">{</span>
+</span><span class='line'>          <span class="n">Runner</span> <span class="n">runner</span> <span class="o">=</span> <span class="n">toggleRunner</span><span class="o">.</span><span class="na">value</span><span class="o">().</span><span class="na">newInstance</span><span class="o">();</span>
+</span><span class='line'>          <span class="n">MethodSignature</span> <span class="n">signature</span> <span class="o">=</span> <span class="o">(</span><span class="n">MethodSignature</span><span class="o">)</span> <span class="n">joinPoint</span><span class="o">.</span><span class="na">getSignature</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="k">return</span> <span class="n">runner</span><span class="o">.</span><span class="na">execute</span><span class="o">(</span><span class="n">signature</span><span class="o">,</span> <span class="n">joinPoint</span><span class="o">.</span><span class="na">getArgs</span><span class="o">());</span>
+</span><span class='line'>      <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">Exception</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="k">throw</span> <span class="k">new</span> <span class="nf">RuntimeException</span><span class="o">(</span><span class="s">&quot;Runner should have a default constructor.&quot;</span><span class="o">,</span> <span class="n">e</span><span class="o">);</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>ProceedingResult.java</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="kd">class</span> <span class="nc">ProceedingResult</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">private</span> <span class="kt">boolean</span> <span class="n">shouldBeExecuted</span><span class="o">;</span>
+</span><span class='line'>  <span class="kd">private</span> <span class="n">Object</span> <span class="n">defaultValue</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">public</span> <span class="nf">ProceedingResult</span><span class="o">(</span><span class="kt">boolean</span> <span class="n">shouldBeExecuted</span><span class="o">,</span> <span class="n">Object</span> <span class="n">defaultValue</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">this</span><span class="o">.</span><span class="na">shouldBeExecuted</span> <span class="o">=</span> <span class="n">shouldBeExecuted</span><span class="o">;</span>
+</span><span class='line'>      <span class="k">this</span><span class="o">.</span><span class="na">defaultValue</span> <span class="o">=</span> <span class="n">defaultValue</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">shouldBeExecuted</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">return</span> <span class="n">shouldBeExecuted</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">public</span> <span class="n">Object</span> <span class="nf">getDefaultValue</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">return</span> <span class="n">defaultValue</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Runner.java</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">Runner</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">ProceedingResult</span> <span class="nf">execute</span><span class="o">(</span><span class="n">MethodSignature</span> <span class="n">signature</span><span class="o">,</span> <span class="n">Object</span><span class="o">[]</span> <span class="n">args</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>ToggleRunner.java</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="nd">@Retention</span><span class="o">(</span><span class="n">RUNTIME</span><span class="o">)</span>
+</span><span class='line'><span class="nd">@Target</span><span class="o">({</span><span class="n">METHOD</span><span class="o">})</span>
+</span><span class='line'><span class="kd">public</span> <span class="nd">@interface</span> <span class="n">ToggleRunner</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">Class</span><span class="o">&lt;?</span> <span class="kd">extends</span> <span class="n">Runner</span><span class="o">&gt;</span> <span class="n">value</span><span class="o">();</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>我们仍用上面麦当劳的例子，来看看由AspectJ创建的特性开关是如何工作的。</p>
+
+<p>McDonalds.java</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="kd">class</span> <span class="nc">McDonalds</span> <span class="o">{</span>
+</span><span class='line'>  <span class="kd">private</span> <span class="n">Country</span> <span class="n">country</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">public</span> <span class="nf">McDonalds</span><span class="o">(</span><span class="n">Country</span> <span class="n">country</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">this</span><span class="o">.</span><span class="na">country</span> <span class="o">=</span> <span class="n">country</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">public</span> <span class="n">String</span> <span class="nf">makeHamburg</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">StringBuilder</span> <span class="n">desc</span> <span class="o">=</span> <span class="k">new</span> <span class="n">StringBuilder</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">Material</span> <span class="n">material</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Material</span><span class="o">();</span>
+</span><span class='line'>      <span class="n">desc</span><span class="o">.</span><span class="na">append</span><span class="o">(</span><span class="n">material</span><span class="o">.</span><span class="na">bread</span><span class="o">());</span>
+</span><span class='line'>      <span class="n">desc</span><span class="o">.</span><span class="na">append</span><span class="o">(</span><span class="n">material</span><span class="o">.</span><span class="na">sauce</span><span class="o">(</span><span class="n">country</span><span class="o">));</span>
+</span><span class='line'>      <span class="n">desc</span><span class="o">.</span><span class="na">append</span><span class="o">(</span><span class="n">material</span><span class="o">.</span><span class="na">lettuce</span><span class="o">());</span>
+</span><span class='line'>      <span class="n">desc</span><span class="o">.</span><span class="na">append</span><span class="o">(</span><span class="n">material</span><span class="o">.</span><span class="na">cutlet</span><span class="o">());</span>
+</span><span class='line'>      <span class="n">desc</span><span class="o">.</span><span class="na">append</span><span class="o">(</span><span class="n">material</span><span class="o">.</span><span class="na">bread</span><span class="o">());</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">return</span> <span class="n">desc</span><span class="o">.</span><span class="na">toString</span><span class="o">();</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>可以看到，Material的创建使用了标准的new运算符。但是country却被作为参数传到Material.sauce()方法中。</p>
+
+<p>Material.java</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">class</span> <span class="nc">Material</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">public</span> <span class="n">String</span> <span class="nf">bread</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">return</span> <span class="s">&quot;Bread|&quot;</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">public</span> <span class="n">String</span> <span class="nf">lettuce</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">return</span> <span class="s">&quot;Lettuce|&quot;</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">public</span> <span class="n">String</span> <span class="nf">cutlet</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">return</span> <span class="s">&quot;Meat|&quot;</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nd">@ToggleRunner</span><span class="o">(</span><span class="n">LocationDependingRunner</span><span class="o">.</span><span class="na">class</span><span class="o">)</span>
+</span><span class='line'>  <span class="nd">@Location</span><span class="o">(</span><span class="n">Others</span><span class="o">)</span>
+</span><span class='line'>  <span class="kd">public</span> <span class="n">String</span> <span class="nf">sauce</span><span class="o">(</span><span class="n">Country</span> <span class="n">country</span><span class="o">)</span> <span class="o">{</span>      <span class="c1">// 参数country的加入纯粹是为了满足特性开关的需要，并非属于逻辑代码</span>
+</span><span class='line'>      <span class="k">return</span> <span class="s">&quot;TomatoSauce|&quot;</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><strong>通过上述分析我们可以看出，作为特性开关的实现，以上两种方案都是很好的选择。那么它们之间又有何不同之处呢？下面我们会从多个角度进行比较。</strong></p>
+
+<ol>
+<li><p>是否需要使用特殊的方法创建对象：</p>
+
+<ul>
+<li><p>“代理方式”在创建对象时，需要使用类似反射的方式</p>
+
+<p>  <pre>area(country).create(Material.class)</pre></p></li>
+<li><p>“AspectJ编译方式”则没有特殊要求</p></li>
+</ul>
+</li>
+<li><p>是否需要添加特殊标记：</p>
+
+<ul>
+<li><p>“代理方式”不需要在方法上添加额外标记</p></li>
+<li><p>“AspectJ编译方式”需要为Runner添加特殊标记</p>
+
+<p>  <pre>
+  @ToggleRunner(LocationDependingRunner.class)
+  @Location(Others)
+  public String sauce(Country country) { … }</pre></p></li>
+</ul>
+</li>
+<li><p>是否会产生对额外参数的依赖：</p>
+
+<ul>
+<li><p>“代理方式”不会依赖额外参数</p></li>
+<li><p>“AspectJ编译方式”由于需要通过参数获取参与条件判断的变量，所以会出现不必要的参数</p>
+
+<p>  <pre>
+  public String sauce(Country country) {  // country为“不必要”参数
+      return &ldquo;TomatoSauce|&rdquo;;
+  }</pre></p></li>
+</ul>
+</li>
+</ol>
+
+
+<p>通过上面的比较，我们可以看出由“AspectJ编译方式”创建的特性开关由于条件变量的传入，会在一定程度上破坏业务的清晰表达，对代码整洁也会产生一定影响。所以在我们的项目中，最终选择了以“代理模式”创建特性开关。</p>
+
+<h3>应用</h3>
+
+<p>下面与大家分享一下，在我们的项目中是如何一步步引入特性开关的。</p>
+
+<p>首先，让我们来看看需要加入特性开关的类。</p>
+
+<p>OwnerDetailAction.java</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="kd">class</span> <span class="nc">OwnerDetailAction</span> <span class="o">{</span>
+</span><span class='line'>  <span class="kd">private</span> <span class="n">PolicyIdentifier</span> <span class="n">policyIdentifier</span><span class="o">;</span>
+</span><span class='line'>  <span class="kd">private</span> <span class="n">OwnerDetailFetchingService</span> <span class="n">service</span><span class="o">;</span>
+</span><span class='line'>  <span class="kd">private</span> <span class="n">OwnerDetail</span> <span class="n">ownerDetail</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">...</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="kd">public</span> <span class="n">View</span> <span class="nf">onNext</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">if</span> <span class="o">(</span><span class="n">policyIdentifier</span><span class="o">.</span><span class="na">getCurrentBrand</span><span class="o">()</span> <span class="o">==</span> <span class="n">Brand</span><span class="o">.</span><span class="na">AMMI</span> <span class="o">&amp;&amp;</span>
+</span><span class='line'>              <span class="n">policyIdentifier</span><span class="o">.</span><span class="na">getCurrentChannel</span><span class="o">()</span> <span class="o">==</span> <span class="n">Channel</span><span class="o">.</span><span class="na">Internet</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="n">InsuranceCoverage</span> <span class="n">converage</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="na">getInsuranceCoverage</span><span class="o">(</span><span class="n">ownerDetail</span><span class="o">.</span><span class="na">getId</span><span class="o">());</span>
+</span><span class='line'>          <span class="n">ownerDetail</span><span class="o">.</span><span class="na">setInsuranceCoverage</span><span class="o">(</span><span class="n">converage</span><span class="o">);</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>      
+</span><span class='line'>      <span class="n">updateFamilyInfo</span><span class="o">(</span><span class="n">ownerDetails</span><span class="o">);</span>
+</span><span class='line'>      <span class="k">return</span> <span class="n">View</span><span class="o">.</span><span class="na">Continue</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>  <span class="o">...</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>通过观察上面的代码可以看出，service.getInsuranceCoverage() 与 ownerDetail.setInsuranceCoverage() 是属于业务范畴的操作，而 getCurrentBrand() == Brand.AMMI &amp;&amp; getCurrentChannel() == Channel.Internet 则是针对品牌与渠道的判断，属于特性判断的范畴，与业务并没有直接的联系。当这样的逻辑判断与正常的业务逻辑混杂在一起时，严重影响了业务的清晰表达。<br />
+所以第一步我们现将这团混乱的代码抽取到一个新类中，从而保证主流程的清晰表达。</p>
+
+<p><em>首先，将ownerDetail.setInsuranceCoverage()抽取到一个新类中。</em></p>
+
+<p>InsuranceCoverageUpdater.java</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="kd">class</span> <span class="nc">InsuranceCoverageUpdater</span> <span class="o">{</span>
+</span><span class='line'>  <span class="kd">private</span> <span class="n">Brand</span> <span class="n">brand</span><span class="o">;</span>
+</span><span class='line'>  <span class="kd">private</span> <span class="n">Channel</span> <span class="n">channel</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">public</span> <span class="nf">InsuranceCoverageUpdater</span><span class="o">(</span><span class="n">Brand</span> <span class="n">brand</span><span class="o">,</span> <span class="n">Channel</span> <span class="n">channel</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">this</span><span class="o">.</span><span class="na">brand</span> <span class="o">=</span> <span class="n">brand</span><span class="o">;</span>
+</span><span class='line'>      <span class="k">this</span><span class="o">.</span><span class="na">channel</span> <span class="o">=</span> <span class="n">channel</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">update</span><span class="o">(</span><span class="n">OwnerDetail</span> <span class="n">ownerDetail</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">if</span> <span class="o">(</span><span class="n">brand</span> <span class="o">==</span> <span class="n">Brand</span><span class="o">.</span><span class="na">AMMI</span> <span class="o">&amp;&amp;</span> <span class="n">channel</span> <span class="o">==</span> <span class="n">Channel</span><span class="o">.</span><span class="na">Internet</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="n">InsuranceCoverage</span> <span class="n">converage</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="na">getInsuranceCoverage</span><span class="o">(</span><span class="n">ownerDetail</span><span class="o">.</span><span class="na">getId</span><span class="o">());</span>
+</span><span class='line'>          <span class="n">ownerDetail</span><span class="o">.</span><span class="na">setInsuranceConverage</span><span class="o">(</span><span class="n">converage</span><span class="o">);</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>之后，原来OwnerDetailAction类将被修改为：</p>
+
+<p>OwnerDetailAction.java</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="kd">class</span> <span class="nc">OwnerDetailAction</span> <span class="o">{</span>
+</span><span class='line'>  <span class="kd">private</span> <span class="n">PolicyIdentifier</span> <span class="n">policyIdentifier</span><span class="o">;</span>
+</span><span class='line'>  <span class="kd">private</span> <span class="n">OwnerDetailFetchingService</span> <span class="n">service</span><span class="o">;</span>
+</span><span class='line'>  <span class="kd">private</span> <span class="n">OwnerDetail</span> <span class="n">ownerDetail</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">...</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="kd">public</span> <span class="n">View</span> <span class="nf">onNext</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">Brand</span> <span class="n">brand</span> <span class="o">=</span> <span class="n">policyIdentifier</span><span class="o">.</span><span class="na">getCurrentBrand</span><span class="o">();</span>
+</span><span class='line'>      <span class="n">Channel</span> <span class="n">channel</span> <span class="o">=</span> <span class="n">policyIdentifier</span><span class="o">.</span><span class="na">getCurrentChannel</span><span class="o">();</span>
+</span><span class='line'>  
+</span><span class='line'>      <span class="n">InsuranceCoverageUpdater</span> <span class="n">insuranceConverage</span> <span class="o">=</span> <span class="k">new</span> <span class="n">InsuranceCoverageUpdater</span><span class="o">(</span><span class="n">brand</span><span class="o">,</span> <span class="n">channel</span><span class="o">)</span>
+</span><span class='line'>      <span class="n">insuranceConverage</span><span class="o">.</span><span class="na">update</span><span class="o">(</span><span class="n">ownerDetail</span><span class="o">);</span>
+</span><span class='line'>      <span class="n">updateFamilyInfo</span><span class="o">(</span><span class="n">ownerDetails</span><span class="o">);</span>
+</span><span class='line'>      <span class="k">return</span> <span class="n">View</span><span class="o">.</span><span class="na">Continue</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>  <span class="o">...</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>虽然只是简单地做了类的抽取，但是对比之前，现在的代码在业务表达上已经清爽了很多。不过判断依然存在，只是被隐藏到了InsuranceCoverageUpdater类中。</p>
+
+<p><em>接下来，我们使用特性开关进一步改进逻辑表达。</em></p>
+
+<p>OwnerDetailAction.java</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kn">import</span> <span class="nn">static</span> <span class="n">com</span><span class="o">.</span><span class="na">corp</span><span class="o">.</span><span class="na">domain</span><span class="o">.</span><span class="na">BrandToggle</span><span class="o">.</span><span class="na">brand</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="kd">public</span> <span class="kd">class</span> <span class="nc">OwnerDetailAction</span> <span class="o">{</span>
+</span><span class='line'>  <span class="kd">private</span> <span class="n">PolicyIdentifier</span> <span class="n">policyIdentifier</span><span class="o">;</span>
+</span><span class='line'>  <span class="kd">private</span> <span class="n">OwnerDetailFetchingService</span> <span class="n">service</span><span class="o">;</span>
+</span><span class='line'>  <span class="kd">private</span> <span class="n">OwnerDetail</span> <span class="n">ownerDetail</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">...</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="kd">public</span> <span class="n">View</span> <span class="nf">onNext</span><span class="o">()</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">Brand</span> <span class="n">brand</span> <span class="o">=</span> <span class="n">policyIdentifier</span><span class="o">.</span><span class="na">getCurrentBrand</span><span class="o">();</span>
+</span><span class='line'>      <span class="n">Channel</span> <span class="n">channel</span> <span class="o">=</span> <span class="n">policyIdentifier</span><span class="o">.</span><span class="na">getCurrentChannel</span><span class="o">();</span>
+</span><span class='line'>  
+</span><span class='line'>      <span class="n">InsuranceCoverageUpdater</span> <span class="n">insuranceConverage</span> <span class="o">=</span> <span class="n">brand</span><span class="o">(</span><span class="n">brand</span><span class="o">).</span><span class="na">channel</span><span class="o">(</span><span class="n">channel</span><span class="o">).</span><span class="na">create</span><span class="o">(</span><span class="n">InsuranceCoverageUpdater</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+</span><span class='line'>      <span class="n">insuranceConverage</span><span class="o">.</span><span class="na">update</span><span class="o">(</span><span class="n">ownerDetail</span><span class="o">);</span>
+</span><span class='line'>      <span class="n">updateFamilyInfo</span><span class="o">(</span><span class="n">ownerDetails</span><span class="o">);</span>
+</span><span class='line'>      <span class="k">return</span> <span class="n">View</span><span class="o">.</span><span class="na">Continue</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>  <span class="o">...</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>可以看出，原来的 new InsuranceCoverageUpdater(brand, channel) 方法被 brand(brand).channel(channel).create(InsuranceCoverageUpdater.class) 方法所取代。<br />
+此处的brand()方法是静态导入的Brand.brand()方法。通过静态导入，使对brand和channel的设定表现为链式结构，进一步增强了代码的可读性。尔后，再通过create()方法创建InsuranceCoverageUpdater类的实例。</p>
+
+<p>InsuranceCoverageUpdater类中的代码也得到进一步精简。</p>
+
+<p>InsuranceCoverageUpdater.java</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="kd">class</span> <span class="nc">InsuranceCoverageUpdater</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="nd">@BrandAndChannels</span><span class="o">(</span><span class="n">AMMI_INTERNET</span><span class="o">)</span>  <span class="c1">// 标明只有当brand为AMMI，channel为Internet时update功能才会被执行。</span>
+</span><span class='line'>  <span class="kd">public</span> <span class="kt">void</span> <span class="nf">update</span><span class="o">(</span><span class="n">OwnerDetail</span> <span class="n">ownerDetail</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">Scale</span> <span class="n">scale</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="na">getScale</span><span class="o">(</span><span class="n">ownerDetail</span><span class="o">.</span><span class="na">getId</span><span class="o">());</span>
+</span><span class='line'>      <span class="n">ownerDetail</span><span class="o">.</span><span class="na">setScale</span><span class="o">(</span><span class="n">scale</span><span class="o">);</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>虽然原有的new表达式被create方法调用所取代，但是，InsuranceCoverageUpdater类中恼人if判断逻辑却被完全移除，没有留下任何特性开关使用的痕迹。复杂的条件判断已被简单的Annotation所取代，整个代码都变得非常清爽。</p>
+
+<p>另外，如果有进一步的开关要求需要——如对AMMI上的Extranet渠道提供支持，只需要简单地在annotation中添加AMMI_EXTRANET即可：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="nd">@BrandAndChannels</span><span class="o">({</span><span class="n">AMMI_INTERNET</span><span class="o">,</span> <span class="n">AMMI_EXTRANET</span><span class="o">})</span>
+</span><span class='line'><span class="kd">public</span> <span class="kt">void</span> <span class="nf">update</span><span class="o">(</span><span class="n">OwnerDetail</span> <span class="n">ownerDetail</span><span class="o">)</span> <span class="o">{</span> <span class="o">...</span> <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>同理，如果未来InsuranceCoverageUpdater.update()功能将对所有品牌开放，只需简单地将@BrandAndChannels标记移除即可。</p>
+
+<p>最后我们来揭开 brand().channel().create() 的神秘面纱。</p>
+
+<p>BrandToggle.java</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="kd">final</span> <span class="kd">class</span> <span class="nc">BrandToggle</span> <span class="o">{</span>
+</span><span class='line'>  <span class="kd">private</span> <span class="n">Brand</span> <span class="n">currentBrand</span><span class="o">;</span>
+</span><span class='line'>  <span class="kd">private</span> <span class="n">Channel</span> <span class="n">currentChannel</span><span class="o">;</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="kd">private</span> <span class="nf">BrandToggle</span><span class="o">(</span><span class="n">Brand</span> <span class="n">brand</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">this</span><span class="o">.</span><span class="na">currentBrand</span> <span class="o">=</span> <span class="n">brand</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="kd">public</span> <span class="kd">static</span> <span class="n">BrandToggle</span> <span class="nf">brand</span><span class="o">(</span><span class="n">Brand</span> <span class="n">brand</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">return</span> <span class="k">new</span> <span class="nf">BrandToggle</span><span class="o">(</span><span class="n">brand</span><span class="o">);</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="kd">public</span> <span class="n">BrandToggle</span> <span class="nf">channel</span><span class="o">(</span><span class="n">Channel</span> <span class="n">channel</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">this</span><span class="o">.</span><span class="na">currentChannel</span> <span class="o">=</span> <span class="n">channel</span><span class="o">;</span>
+</span><span class='line'>      <span class="k">return</span> <span class="k">this</span><span class="o">;</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="kd">public</span> <span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">T</span> <span class="n">create</span><span class="o">(</span><span class="n">Class</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">targetClass</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">return</span> <span class="nf">create</span><span class="o">(</span><span class="n">targetClass</span><span class="o">,</span> <span class="k">new</span> <span class="n">Object</span><span class="o">[</span><span class="mi">0</span><span class="o">]);</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="kd">public</span> <span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">T</span> <span class="n">create</span><span class="o">(</span><span class="n">Class</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">targetClass</span><span class="o">,</span> <span class="n">Object</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">return</span> <span class="k">new</span> <span class="n">ProxyGenerator</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;(</span><span class="n">targetClass</span><span class="o">,</span> <span class="n">args</span><span class="o">).</span><span class="na">generate</span><span class="o">(</span><span class="k">new</span> <span class="n">MarkedByBrands</span><span class="o">(),</span>
+</span><span class='line'>              <span class="k">new</span> <span class="nf">BrandDependingHandler</span><span class="o">());</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="kd">private</span> <span class="kd">static</span> <span class="kd">class</span> <span class="nc">MarkedByBrands</span> <span class="kd">implements</span> <span class="n">MethodFilter</span> <span class="o">{</span>
+</span><span class='line'>      <span class="nd">@Override</span>
+</span><span class='line'>      <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">isHandled</span><span class="o">(</span><span class="n">Method</span> <span class="n">method</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="k">return</span> <span class="n">method</span><span class="o">.</span><span class="na">getAnnotation</span><span class="o">(</span><span class="n">Brands</span><span class="o">.</span><span class="na">class</span><span class="o">)</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">;</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>  
+</span><span class='line'>  <span class="kd">private</span> <span class="kd">class</span> <span class="nc">BrandDependingHandler</span> <span class="kd">implements</span> <span class="n">MethodHandler</span> <span class="o">{</span>
+</span><span class='line'>      <span class="nd">@Override</span>
+</span><span class='line'>      <span class="kd">public</span> <span class="n">Object</span> <span class="nf">invoke</span><span class="o">(</span><span class="n">Object</span> <span class="n">targe</span><span class="o">,</span> <span class="n">Method</span> <span class="n">method</span><span class="o">,</span> <span class="n">Method</span> <span class="n">methodDelegation</span><span class="o">,</span> <span class="n">Object</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Throwable</span> <span class="o">{</span>
+</span><span class='line'>          <span class="n">BrandAndChannels</span> <span class="n">annotation</span> <span class="o">=</span> <span class="n">method</span><span class="o">.</span><span class="na">getAnnotation</span><span class="o">(</span><span class="n">BrandAndChannels</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+</span><span class='line'>          <span class="k">if</span> <span class="o">(</span><span class="n">brands</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">||</span> <span class="n">containsCurrentBrand</span><span class="o">(</span><span class="n">annotation</span><span class="o">.</span><span class="na">value</span><span class="o">()))</span> <span class="o">{</span>
+</span><span class='line'>              <span class="k">return</span> <span class="n">methodDelegation</span><span class="o">.</span><span class="na">invoke</span><span class="o">(</span><span class="n">target</span><span class="o">,</span> <span class="n">args</span><span class="o">);</span>
+</span><span class='line'>          <span class="o">}</span>
+</span><span class='line'>          
+</span><span class='line'>          <span class="k">return</span> <span class="k">new</span> <span class="nf">DefaultValue</span><span class="o">(</span><span class="n">method</span><span class="o">.</span><span class="na">getReturnType</span><span class="o">()).</span><span class="na">value</span><span class="o">();</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>      
+</span><span class='line'>      <span class="kd">private</span> <span class="kt">boolean</span> <span class="nf">containsCurrentBrand</span><span class="o">(</span><span class="n">BrandAndChannel</span><span class="o">[]</span> <span class="n">brandAndChannels</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="k">if</span> <span class="o">(</span><span class="n">BrandAndChannel</span> <span class="n">brandAndChannel</span> <span class="o">:</span> <span class="n">brandAndChannels</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>              <span class="k">if</span> <span class="o">(</span><span class="n">brandAndChannel</span><span class="o">.</span><span class="na">is</span><span class="o">(</span><span class="n">currentBrand</span><span class="o">,</span> <span class="n">currentChannel</span><span class="o">))</span> <span class="o">{</span>
+</span><span class='line'>                  <span class="k">return</span> <span class="kc">true</span><span class="o">;</span>
+</span><span class='line'>              <span class="o">}</span>
+</span><span class='line'>          <span class="o">}</span>
+</span><span class='line'>          
+</span><span class='line'>          <span class="k">return</span> <span class="kc">false</span><span class="o">;</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>BrandToggle类通过brand()，channel()方法很好地表达了特性开关中的“开关”概念，create()方法则将ProxyGenerator类的实现细节完全隐藏了起来。</p>
+
+<p>至此，我们的系统已经能够通过特性开关实现功能的有效屏蔽。通过这种方式，我们使由于特性开关的添加而造成的对原有业务的影响降到了最低，不再有恼人的if&hellip;else&hellip;表达式，只有清爽的业务结构。更重要的是，这种方式易于操作与实现，对于特性开关的使用者来说整个过程几乎是透明的。</p>
+
+<p>Note: 如果您想了解特性开关的更多实现细节，可以在我的<a href="https://github.com/ymeng-think/feature-toggle">Github</a>中找到相应的源代码。</p>
+
+<h3>小结</h3>
+
+<p>“特性开关”在许多场景中都比“特性分支”具有更好的适用性和更高的效率。但是，就像所有的解决方案一样，特性开关同样也不是银弹，也存在使用的界限。只有我们很好地掌握其原理，合理地应用技术，不断改进，才能使“特性开关”这一利器在我们的项目中发挥更大的作用。</p>
+
+<p>最后，衷心感谢ThoughtWorks公司高级咨询师张逸在本文写作过程中提供的无私帮助与建议。</p>
+
+<h3>成文数日后的一次思考（Jul 24, 2013）</h3>
+
+<p>在本文写成的几日后，曾向一位同事推荐本文中的做法，因为恰好他所在的项目组需要使用特性开关来暂时隐藏一些未完成的功能，并且也希望能通过配置特性开关实现业务分支。另外，他还问道：“我们为什么不把特性开关做为一种产品或解决方案来发布呢？”</p>
+
+<p>初听起来，这是一个不错的建议。但是我并不完全赞同，理由如下：</p>
+
+<ol>
+<li>虽然特性开关提供了分支选择的可能，但我们应该明确：特性开关只是用来解决项目中那5％的不同。换句话说，项目中通用的部分应该大于95％，即主要业务流程是完全相同的，只是在个别步骤上存在些许差异。如果一个项目中通用的部分只有50％，而其余的50％完全不同，我建议应该考虑其它业务分支解决方法，而不要使用特性开关，因为这不是特性开关所擅长解决的问题。</li>
+<li>当我们将特性开关作为一个产品或者一揽子的解决方案兜售给他人时，必然面对各种各样的需求，必须满足无数的特殊情况。这会使原本单纯的特性开关变得不再简单，很可能会变成一种重型框架。这不是一个好的方向，至少不是我所希望的。所以我的建议是，保持特性开关的单纯，保持功能实现的最小集，并且使他人可以根据自己的需要轻松扩展。在我看来，本文中讲到的特性开关更适合作为一种方法，一种解决特殊问题的推荐方式。</li>
+</ol>
+
+
+<p>如果大家能够通过遵循正确的步骤使用特性开关，解决了困扰自己多时的问题，那么特性开关就已经产生了它最大的价值。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -228,6 +1285,10 @@ $ git push origin source
     <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/07/14/import-feature-toggle-transparently/">在项目中透明地引入特性开关</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2013/07/12/build-blog-with-octopress-as-a-hacker/">Octopress帮你像黑客一样写博客</a>
