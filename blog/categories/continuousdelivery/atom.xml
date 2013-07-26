@@ -4,7 +4,7 @@
   <title><![CDATA[Category: ContinuousDelivery | My Octopress Blog]]></title>
   <link href="http://ymeng-think.github.io/blog/categories/continuousdelivery/atom.xml" rel="self"/>
   <link href="http://ymeng-think.github.io/"/>
-  <updated>2013-07-26T22:00:24+08:00</updated>
+  <updated>2013-07-26T22:29:23+08:00</updated>
   <id>http://ymeng-think.github.io/</id>
   <author>
     <name><![CDATA[Your Name]]></name>
@@ -18,7 +18,7 @@
     <link href="http://ymeng-think.github.io/blog/2013/07/14/import-feature-toggle-transparently/"/>
     <updated>2013-07-14T18:22:00+08:00</updated>
     <id>http://ymeng-think.github.io/blog/2013/07/14/import-feature-toggle-transparently</id>
-    <content type="html"><![CDATA[<p><img class="right" src="/images/tech/import_feature_toggle_transparently/toggle.jpg" width="370" height="245" title="&lsquo;Toggle&rsquo; &lsquo;toggle&rsquo;" ></p>
+    <content type="html"><![CDATA[<p>{% img right /images/tech/import_feature_toggle_transparently/toggle.jpg 370 245 &lsquo;Toggle&rsquo; &lsquo;toggle&rsquo; %}</p>
 
 <p>在前几期的InfoQ专栏中刊登了一篇名为“<a href="http://www.infoq.com/cn/articles/function-switch-realize-better-continuous-implementations">使用功能开关更好地实现持续部署</a>”的文章，文中讲解了特性开关与Spring的集成应用。但如果项目没有依赖Spring，又如何很好地使用特性开关呢？又如何透明地引入之呢？</p>
 
@@ -194,7 +194,7 @@ buyInsurance()
 
 <p>在实际应用中，我们可以创建一种名为“保护代理”的对象，即控制对象具有不同的访问权限。</p>
 
-<p><img class="middle" src="/images/tech/import_feature_toggle_transparently/proxy.png" width="458" height="248" title="&lsquo;Create Object with Protection Proxy&rsquo; &lsquo;protection proxy&rsquo;" ></p>
+<p>{% img middle /images/tech/import_feature_toggle_transparently/proxy.png 458 248 &lsquo;Create Object with Protection Proxy&rsquo; &lsquo;protection proxy&rsquo; %}</p>
 
 <p>具体实现参见如下代码，ProxyGenerator类使用动态代理创建目标类的代理(Proxy)类。</p>
 
@@ -315,7 +315,7 @@ buyInsurance()
 
 <p>通过AspectJ，我们可以将判定条件在编译时注入到代码中。</p>
 
-<p><img class="middle" src="/images/tech/import_feature_toggle_transparently/aspectj.png" width="432" height="259" title="&lsquo;Compile Object with AspectJ&rsquo; &lsquo;aspectj&rsquo;" ></p>
+<p>{% img middle /images/tech/import_feature_toggle_transparently/aspectj.png 432 259 &lsquo;Compile Object with AspectJ&rsquo; &lsquo;aspectj&rsquo; %}</p>
 
 <p>如下代码所示，FeatureToggleAspect类通过AspectJ在编译时将切入点(Runner接口的实现类)置入被@ToggleRunner所标记的方法的前部。当方法被调用时，将首先执行Runner接口的实现类，对是否满足条件作出判断。如果满足，则原逻辑才会被执行。</p>
 
