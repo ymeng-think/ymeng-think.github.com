@@ -440,7 +440,7 @@ Material.java
 
 下面与大家分享一下，在我们的项目中是如何一步步引入特性开关的。
 
-首先，让我们来看看需要加入特性开关的类。
+那么，让我们来看看需要加入特性开关的类。
 
 OwnerDetailAction.java
 
@@ -506,7 +506,7 @@ OwnerDetailAction.java
 			Brand brand = policyIdentifier.getCurrentBrand();
 			Channel channel = policyIdentifier.getCurrentChannel();
 		
-			InsuranceCoverageUpdater insuranceConverage = new InsuranceCoverageUpdater(brand, channel)
+			InsuranceCoverageUpdater insuranceConverage = new InsuranceCoverageUpdater(brand, channel);
 			insuranceConverage.update(ownerDetail);
 			updateFamilyInfo(ownerDetails);
 			return View.Continue;
@@ -649,7 +649,7 @@ Note: 如果您想了解特性开关的更多实现细节，可以在我的[Gith
 ---
 <br />
 
-### 成文数日后的一次思考（Jul 24, 2013）
+### 成文数日后的思考（Jul 24, 2013）
 
 在本文写成的几日后，曾向一位同事推荐本文中的做法，因为恰好他所在的项目组需要使用特性开关来暂时隐藏一些未完成的功能，并且也希望能通过配置特性开关实现业务分支。另外，他还问道：“我们为什么不把特性开关做为一种产品或解决方案来发布呢？”
 
